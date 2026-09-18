@@ -4,7 +4,7 @@
 
 This project implements an end-to-end quantitative finance workflow for calibrating the Heston stochastic volatility model to real market data and applying the calibrated model to price vanilla American equity options.
 
-The workflow begins in the notebook `SPX-HestonFourier-Calibration.ipynb`, where the Heston model is calibrated to the market-observed implied volatilities of European SPX options, thereby extracting the market's risk-neutral expectations for the future dynamics of the S&P 500 Index. The calibrated model parameters are then used in `SPY-HestonFDADI-Pricing.ipynb` to price American SPY options, which are linked to the same underlying market but additionally incorporate the complexities of early exercise and discrete dividend payments. Option prices are computed using a custom finite-difference pricing engine based on the Hundsdorfer–Verwer Alternating Direction Implicit (ADI) scheme, with discrete dividends handled explicitly through asset-grid interpolation at ex-dividend dates.
+The workflow begins in the notebook `SPX-HestonFourier-Calibration.ipynb`, where the Heston model is calibrated to the market-observed implied volatilities of European SPX options, thereby extracting the market's risk-neutral expectations for the future dynamics of the S&P 500 Index. The calibrated model parameters are then used in `SPY-HestonFDADI-Pricing.ipynb` to price American SPY options, which are linked to the same underlying market but additionally incorporate the complexities of early exercise and discrete dividend payments. Option prices are computed using a custom finite-difference pricing engine based on the Hundsdorfer–Verwer Alternating Direction Implicit (ADI) scheme, with discrete dividends handled explicitly through asset-grid interpolation at ex-dividend dates (implemented in the modules `HestonFD` and `QLHestonFD`). 
 
 The implementation integrates stochastic volatility modelling, Fourier-based option pricing, finite-difference methods for solving partial differential equations, calibration to real market data, and computational optimisation through sparse linear algebra.
 
@@ -56,8 +56,6 @@ The implementation integrates stochastic volatility modelling, Fourier-based opt
 
 ---
 
-## Numerical Methods
-
 ### Calibration
 
 The following Heston model parameters are calibrated using **Differential Evolution**:
@@ -73,7 +71,7 @@ The objective function minimises the error between:
 - Market implied volatilities
 - Model implied volatilities
 
-rather than option prices, resulting in a more stable calibration across strikes and maturities. Model option prices are computed using the Lewis Fourier pricing approach (Ref. 4), from which the corresponding implied volatilities are obtained for comparison with market data.
+rather than option prices, resulting in a more stable calibration across strikes and maturities. Model option prices are computed using the Lewis Fourier pricing approach (Ref. 4 implemented in the `HestonFourierEuropean` module), from which the corresponding implied volatilities are obtained for comparison with market data.
 
 <img src="figures/iv_calibrated_plot.png" width="700">
 
@@ -86,13 +84,13 @@ After calibration, the Heston pricing PDE is solved using a finite-difference me
 - Sparse tridiagonal operators
 - Backward time stepping
 
-Early exercise is enforced after every time step using the projection method. The resulting finite-difference pricing engine is referred to throughout this project as the HH Heston solver, as it is based on the ADI methodology of Haentjens and in 't Hout (Ref. 1).
+Early exercise is enforced after every time step using the projection method. The resulting finite-difference pricing engine is referred to throughout this project as the HH Heston solver, as it is based on the ADI methodology of Haentjens and in 't Hout (Ref. 1). This implementation can be found in the `HestonFD` module, while the corresponding QuantLib implementation is in the `QLHestonFD` module.
 
 <img src="figures/american_hhpricing_plot.png" width="700">
 
 ---
 
-## Discrete Dividends
+### Discrete Dividends
 
 This project explicitly models discrete dividend payments. At each ex-dividend date:
 
@@ -102,6 +100,36 @@ This project explicitly models discrete dividend payments. At each ex-dividend d
 allowing realistic pricing of American equity options.
 
 <img src="figures/early_exercise_boundary_put.png" width="700">
+
+---
+
+### HH Heston solver validation
+
+The HH Heston solver pricing engine is validated against that of QuantLib. Typical observations include:
+
+- The HH Heston solver produces option prices that closely agree with those obtained using QuantLib, with both implementations converging to a similar limiting value as the computational mesh is refined.
+- Pricing differences relative to market data depend on calibration quality, prevailing market conditions, and data freshness.
+- The remaining discrepancies primarily reflect model assumptions and calibration limitations rather than numerical inaccuracies.
+
+| Type | HH Price | QuantLib Price | Market Price | Delta (HH) | Delta (QL) | Vega (HH) | HH Runtime (sec) | QL Runtime (sec) |
+|------|--------|--------|--------|--------|--------|--------|--------|--------|
+| Put |	18.33 |	18.30 |	17.23 |	-0.20 |	-0.20 |	6.09 |	2.14 |	1.04 |
+| Call|	18.18 |	18.13 |	19.01 |	0.51  |	0.51  |	6.76 |	1.87 |	1.25 |
+
+<br>
+<img src="figures/convergence_heston_pricer_put.png" width="700">
+
+---
+
+### Performance Optimisation
+
+The HH Heston finite-difference solver stores the tridiagonal system matrices in sparse format. Compared with a dense implementation, this significantly reduces computational cost by:
+
+- lowering memory usage,
+- accelerating linear solves,
+- exploiting the banded structure of finite-difference operators.
+
+This optimisation enables substantially faster pricing while maintaining identical numerical results. The runtime is approximately 2-5x that of QuantLib.
 
 ---
 
@@ -120,36 +148,6 @@ allowing realistic pricing of American equity options.
 
 The repository includes market data snapshots used to reproduce the results presented in the notebooks in the folder `options_data`. The data-fetching scripts can be used to download updated market data from Yahoo Finance and FRED.
   
----
-
-## Validation
-
-The implementation is validated against QuantLib. Typical observations include:
-
-- The HH Heston solver produces option prices that closely agree with those obtained using QuantLib, with both implementations converging to a similar limiting value as the computational mesh is refined.
-- Pricing differences relative to market data depend on calibration quality, prevailing market conditions, and data freshness.
-- The remaining discrepancies primarily reflect model assumptions and calibration limitations rather than numerical inaccuracies.
-
-| Type | HH Price | QuantLib Price | Market Price | Delta (HH) | Delta (QL) | Vega (HH) | HH Runtime (sec) | QL Runtime (sec) |
-|------|--------|--------|--------|--------|--------|--------|--------|--------|
-| Put |	18.33 |	18.30 |	17.23 |	-0.20 |	-0.20 |	6.09 |	2.14 |	1.04 |
-| Call|	18.18 |	18.13 |	19.01 |	0.51  |	0.51  |	6.76 |	1.87 |	1.25 |
-
-<br>
-<img src="figures/convergence_heston_pricer_put.png" width="700">
-
----
-
-## Performance Optimisation
-
-The HH Heston finite-difference solver stores the tridiagonal system matrices in sparse format. Compared with a dense implementation, this significantly reduces computational cost by:
-
-- lowering memory usage,
-- accelerating linear solves,
-- exploiting the banded structure of finite-difference operators.
-
-This optimisation enables substantially faster pricing while maintaining identical numerical results. The runtime is approximately 2-5x that of QuantLib.
-
 ---
 
 ## Visualisations
