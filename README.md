@@ -41,19 +41,19 @@ The implementation integrates stochastic volatility modelling, Fourier-based opt
 
 ## Features
 
+
 - Calibration of the Heston stochastic volatility model to real SPX option data
 - Fourier-based option pricing of European options
-- American option pricing using a two-dimensional finite-difference solver
-- Hundsdorfer–Verwer ADI time-stepping scheme
-- Support for discrete cash dividends
-- Early exercise handled using the projection method
-- Sparse matrix implementation for efficient linear solves
-- Validation against QuantLib
+- Two-dimensional finite-difference solver for American options
+  - Hundsdorfer–Verwer ADI time-stepping scheme
+  - Support for discrete cash dividends
+  - Early exercise handled using the projection method
+  - Sparse matrix implementation for efficient linear solves
+  - Early exercise boundary visualisation
+  - Convergence analysis of option prices with mesh refinement
 - Comparison against live market prices
 - Computation of option Greeks
-- Exercise boundary visualisation
-- Convergence analysis of option prices with mesh refinement
-
+  
 ---
 
 ### Calibration
@@ -90,7 +90,7 @@ Early exercise is enforced after every time step using the projection method. Th
 
 ---
 
-### Discrete Dividends
+#### Discrete Dividends
 
 This project explicitly models discrete dividend payments. At each ex-dividend date:
 
@@ -99,11 +99,15 @@ This project explicitly models discrete dividend payments. At each ex-dividend d
 
 allowing realistic pricing of American equity options.
 
+#### Early exercise boundary
+
+The HH Heston solver also tracks the early exercise boundary, which separates the regions where it is optimal to exercise an American option from where it is optimal to continue holding it. Visualising this boundary provides insight into the exercise behaviour of the option and offers an additional diagnostic for assessing the numerical solution.
+
 <img src="figures/early_exercise_boundary_put.png" width="700">
 
 ---
 
-### HH Heston solver validation
+#### HH Heston solver validation
 
 The HH Heston solver pricing engine is validated against that of QuantLib. Typical observations include:
 
@@ -121,7 +125,7 @@ The HH Heston solver pricing engine is validated against that of QuantLib. Typic
 
 ---
 
-### Performance Optimisation
+#### Performance Optimisation
 
 The HH Heston finite-difference solver stores the tridiagonal system matrices in sparse format. Compared with a dense implementation, this significantly reduces computational cost by:
 
