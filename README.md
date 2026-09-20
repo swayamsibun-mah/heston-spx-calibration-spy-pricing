@@ -4,9 +4,9 @@
 
 This project implements an end-to-end quantitative finance workflow for calibrating the Heston stochastic volatility model to real market data and applying the calibrated model to price vanilla American equity options.
 
-The workflow begins in the notebook `SPX-HestonFourier-Calibration.ipynb`, where the Heston model is calibrated to the market-observed implied volatilities of European SPX options, thereby extracting the market's risk-neutral expectations for the future dynamics of the S&P 500 Index. The calibrated model parameters are then used in `SPY-HestonFDADI-Pricing.ipynb` to price American options on the SPDR S&P 500 ETF Trust (SPY). These options are linked to the same underlying market while additionally incorporating the complexities of early exercise and discrete dividend payments. Option prices are computed using a custom finite-difference pricing engine based on the Hundsdorfer–Verwer Alternating Direction Implicit (ADI) scheme, with discrete dividends handled explicitly through asset-grid interpolation at ex-dividend dates (implemented in the modules `HestonFD` and `QLHestonFD`). 
+The workflow begins in the notebook `SPX-HestonFourier-Calibration.ipynb`, where the Heston model is calibrated to the market-observed implied volatilities of European SPX options, thereby extracting the market's risk-neutral expectations for the future dynamics of the S&P 500 Index. The calibrated model parameters are then used in `SPY-HestonFDADI-Pricing.ipynb` to price American options on the SPDR S&P 500 ETF Trust (SPY). These options are linked to the same underlying market while additionally incorporating the complexities of early exercise and discrete dividend payments. Option prices are computed using a custom finite-difference pricing engine based on the Hundsdorfer–Verwer Alternating Direction Implicit (ADI) scheme, with discrete dividends handled explicitly through asset-grid interpolation at ex-dividend dates. These implementations are contained in the `HestonFD` and `QLHestonFD` modules, while `HestonFD` additionally provides access to the early exercise boundary..
 
-The implementation integrates stochastic volatility modelling, Fourier-based option pricing, finite-difference methods for solving partial differential equations, calibration to real market data, and computational optimisation through sparse linear algebra.
+This project integrates stochastic volatility modelling, Fourier-based option pricing, finite-difference methods for solving partial differential equations, calibration to real market data, and computational optimisation through sparse linear algebra.
 
 ---
 
@@ -51,10 +51,8 @@ The implementation integrates stochastic volatility modelling, Fourier-based opt
   - Sparse matrix implementation for efficient linear solves
   - Early exercise boundary visualisation
   - Convergence analysis of option prices with mesh refinement
-- Comparison against live market prices
+- Comparison against live market prices for SPY options
 - Computation of option Greeks
-  
----
 
 ### Calibration
 
@@ -88,8 +86,6 @@ Early exercise is enforced after every time step using the projection method. Th
 
 <img src="figures/american_hhpricing_plot.png" width="700">
 
----
-
 #### Discrete Dividends
 
 This project explicitly models discrete dividend payments. At each ex-dividend date:
@@ -104,8 +100,6 @@ allowing realistic pricing of American equity options.
 The HH Heston solver also tracks the early exercise boundary, which separates the regions where it is optimal to exercise an American option from where it is optimal to continue holding it. Visualising this boundary provides insight into the exercise behaviour of the option and offers an additional diagnostic for assessing the numerical solution.
 
 <img src="figures/early_exercise_boundary_put.png" width="700">
-
----
 
 #### HH Heston solver validation
 
@@ -122,8 +116,6 @@ The HH Heston solver pricing engine is validated against that of QuantLib. Typic
 
 <br>
 <img src="figures/convergence_heston_pricer_put.png" width="700">
-
----
 
 #### Performance Optimisation
 
