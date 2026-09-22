@@ -84,6 +84,8 @@ After calibration, the Heston pricing PDE is solved using a finite-difference me
 
 Early exercise is enforced after every time step using the projection method. The resulting finite-difference pricing engine is referred to throughout this project as the HH Heston solver, as it is based on the ADI methodology of Haentjens and in 't Hout (Ref. 1). This implementation can be found in the `HestonFD` module, while the corresponding QuantLib implementation is in the `QLHestonFD` module.
 
+Finite-difference methods are used instead of Monte Carlo because they offer faster computation and are particularly effective for deep out-of-the-money (DOTM) American options, where Monte Carlo estimates can have high variance due to the small number of simulated paths reaching the optimal exercise region.
+
 <img src="figures/american_hhpricing_plot.png" width="700">
 
 #### Discrete Dividends
